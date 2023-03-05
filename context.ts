@@ -1,6 +1,7 @@
 import {
   consume,
   ContextConsumer,
+  ContextProvider,
   createContext,
   provide,
 } from "@lit-labs/context";
@@ -18,14 +19,24 @@ import {
 } from "@tanstack/query-core";
 import { ReactiveControllerHost, ReactiveElement } from "lit";
 import { state } from "lit/decorators.js";
-import { ObserverController } from "./observer-controller";
+import { ClientMounter, ObserverController } from "./controllers";
+import { decorateProperty } from "@lit/reactive-element/decorators.js";
 
 export const queryClientContext = createContext<QueryClient>("query-client");
 export const provideQueryClient = <K extends PropertyKey>(
   protoOrDescriptor: ReactiveElement & Record<K, QueryClient>,
   name?: K
 ) => {
-  provide({ context: queryClientContext })(protoOrDescriptor, name);
+  const _connectedCallback = protoOrDescriptor.connectedCallback;
+
+  protoOrDescriptor.connectedCallback = function () {
+    _connectedCallback.apply(this);
+    if (name) {
+      const client = this[name];
+      new ClientMounter(this, client);
+      new ContextProvider(this, queryClientContext, client);
+    } else throw new Error("provideQueryClient must decorate a property.");
+  };
 };
 
 export const consumeQuery =
@@ -55,10 +66,8 @@ export const consumeQuery =
     if (!name) throw new Error("no property");
     const _connectedCallback = protoOrDescriptor.connectedCallback;
     protoOrDescriptor.connectedCallback = function () {
-      console.log("inside wrapper", this);
       _connectedCallback.apply(this);
       new ContextConsumer(this, queryClientContext, (client) => {
-        console.log("received context", client);
         const observer = new QueryObserver(client, {
           queryFn: fn,
           queryKey: key,
@@ -85,12 +94,9 @@ export const consumeMutation =
       throw Error("No property");
     }
     const _connectedCallback = protoOrDescriptor.connectedCallback;
-    console.log("wrapping connectedCallback on prototype", protoOrDescriptor);
     protoOrDescriptor.connectedCallback = function () {
-      console.log("inside wrapper", this);
       _connectedCallback.apply(this);
       new ContextConsumer(this, queryClientContext, (client) => {
-        console.log("received context", client);
         const observer = new MutationObserver(client, config);
         new ObserverController(this, name, observer);
       });

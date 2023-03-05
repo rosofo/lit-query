@@ -9,6 +9,7 @@
   "license": "ISC",
   "dependencies": {
     "@lit-labs/context": "^0.2.0",
+    "@lit/reactive-element": "^1.6.1",
     "@tanstack/query-core": "^4.24.10"
   },
   "keywords": [],
