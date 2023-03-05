@@ -1,0 +1,16 @@
+{
+  "name": "lit-query",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@lit-labs/context": "^0.2.0",
+    "@tanstack/query-core": "^4.24.10"
+  },
+  "keywords": [],
+  "description": ""
+}
