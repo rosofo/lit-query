@@ -38,26 +38,37 @@ export class TodosApp extends LitElement {
   @consumeQuery(["todos"], () => fetch(`/api/todos`).then((res) => res.json()))
   query?: QueryObserverResult<{ todos: Todo[] }>;
   
-  @consumeMutation({
-    mutationFn: (variables: Partial<Todo> & { id: string }) =>
-      fetch(`/api/todos/${variables.id}`, { method: "PATCH" }).then((res) => {
-        if (res.ok) {
-          return res.json();
-        } else {
-          throw Error(res.statusText);
-        }
-      }),
-  })
-  toggleMutation?: MutationObserverResult<
-    Todo,
-    unknown,
-    Partial<Todo> & { id: string }
-  >;
+  @consumeMutation({ mutationFn: (todo: Minimal<Todo>) => toggleTodo(todo) })
+  toggleMutation?: Mutation<Todo, unknown, Partial<Todo> & { id: string }>;
 
   render() {
     return html`...`;
   }
 }
+```
+
+### Accessing the QueryClient in mutation callbacks
+
+In React, hooks are used in a shared scope where it is easy to call `useQueryClient` and access the client in a subsequent `useMutation`. A common use-case for this is setting query data with the result of a mutation.
+
+In Lit things work differently, so instead, the QueryClient is always provided by lit-query as part of the mutation context.
+
+Here's an example:
+
+```ts
+@consumeMutation({
+  mutationFn: (todo: Minimal<Todo>) => toggleTodo(todo),
+  onSuccess: (result, _vars, context) => {
+    context?.client.setQueryData(
+      ["todos"],
+      produce<{ todos: Todo[] }>(({ todos }) => {
+        const item = todos.find((item) => item.id === result.id);
+        if (item) Object.assign(item, result);
+      })
+    );
+  },
+})
+toggleMutation?: Mutation<Todo, unknown, Partial<Todo> & { id: string }>;
 ```
 
 ## Under the hood
