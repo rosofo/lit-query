@@ -20,7 +20,6 @@ import {
 import { ReactiveControllerHost, ReactiveElement } from "lit";
 import { state } from "lit/decorators.js";
 import { ClientMounter, ObserverController } from "./controllers";
-import { decorateProperty } from "@lit/reactive-element/decorators.js";
 
 export const queryClientContext = createContext<QueryClient>("query-client");
 export const provideQueryClient = <K extends PropertyKey>(
@@ -37,6 +36,16 @@ export const provideQueryClient = <K extends PropertyKey>(
       new ContextProvider(this, queryClientContext, client);
     } else throw new Error("provideQueryClient must decorate a property.");
   };
+};
+
+export const consumeQueryClient = <K extends PropertyKey>(
+  protoOrDescriptor: ReactiveElement & Partial<Record<K, QueryClient>>,
+  name?: K
+) => {
+  consume({ context: queryClientContext, subscribe: true })(
+    protoOrDescriptor,
+    name
+  );
 };
 
 export const consumeQuery =
@@ -79,8 +88,13 @@ export const consumeQuery =
   };
 
 export const consumeMutation =
-  <TData = unknown, TError = unknown, TVariables = unknown, TContext = unknown>(
-    config: MutationOptions<TData, TError, TVariables, TContext>
+  <
+    TData = unknown,
+    TError = unknown,
+    TVariables = unknown,
+    TContext extends { client: QueryClient } = { client: QueryClient }
+  >(
+    config: MutationObserverOptions<TData, TError, TVariables, TContext>
   ) =>
   <K extends PropertyKey>(
     protoOrDescriptor: ReactiveElement &
@@ -97,6 +111,17 @@ export const consumeMutation =
     protoOrDescriptor.connectedCallback = function () {
       _connectedCallback.apply(this);
       new ContextConsumer(this, queryClientContext, (client) => {
+        const _onMutate = config.onMutate ?? ((variables) => undefined);
+        config.onMutate = (variables) => {
+          const result = _onMutate(variables);
+          let out;
+          if (result && "then" in result) {
+            out = result.then((ctx) => ({ ...(ctx ?? {}), client }));
+          } else {
+            out = { ...(result ?? {}), client } as any;
+          }
+          return out;
+        };
         const observer = new MutationObserver(client, config);
         new ObserverController(this, name, observer);
       });
