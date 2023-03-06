@@ -3,6 +3,17 @@ LitElement bindings for [@tanstack/query-core](https://www.npmjs.com/package/@ta
 
 A tiny library which exposes the intuitive API of @tanstack/query, similarly to react-query et al.
 
+## Features
+
+Only the essentials are implemented for now.
+
+Equivalents are exposed for
+
+- `QueryClientProvider`
+- `useQueryClient`
+- `useQuery`
+- `useMutation`
+
 ## Usage
 
 If you've ever used react-query the interface is familiar. `lit-query` exposes a few decorators to provide the query client to a component tree and to consume queries and mutations.
