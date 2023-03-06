@@ -1,5 +1,5 @@
 {
-  "name": "lit-query",
+  "name": "lit-query-core",
   "version": "0.0.1-alpha",
   "main": "index.js",
   "scripts": {
